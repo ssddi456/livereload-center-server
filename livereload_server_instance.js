@@ -79,7 +79,17 @@ server.listen(function(err) {
       if( url_info.pathname == '/livereload.js' ){
         resp.end(static_file);
       } else if( url_info.pathname == '/reload' ){
-        server.broadcast(url_info.query);
+        var info = {};
+
+        for(var key in url_info.query){
+          info[key] = url_info.query[key];
+        }
+
+        if( 'liveCSS' in info ){
+          info.liveCSS = !! info.liveCSS;
+        }
+
+        server.broadcast(info);
         resp.end('{"error" : 0}');
         /**
          * so it will be
