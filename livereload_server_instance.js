@@ -16,7 +16,7 @@ var ws = require('ws');
 
 var LRWebSocketServer = require('livereload-server');
 var _ = require('underscore');
-
+var app = require('./app');
 var server;
 
 // id, name, version identifies your app;
@@ -105,6 +105,8 @@ server.listen(function(err) {
          * })
          * 
          */
+      } else {
+          app(req, resp);
       }
   });
 

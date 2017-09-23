@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        meta(http-equiv="X-UA-Compatible", content="ie=edge")
+        title Document
+        link(rel="stylesheet", href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css")
+    body
+
+        .container(data-bind="foreach: { data: watchSets, as: 'watchSet'}")
+
+            dl.dl-horizontal
+                dt root
+                dd(data-bind="text: watchSet.root")
+                dt watching
+                dd(data-bind="text: watchSet.isWatching")
+
+            dl.dl-horizontal(data-bind="foreach: { data: lastFiveChangeSet, as: 'changeSet'}")
+                // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
+                dt(data-bind="text: fileInfo.fullPath")
+                dd(data-bind="text: fileInfo.match")
+                // /ko 
+
+                // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
+                dt(data-bind="text: fileInfo.fullPath")
+                dd(data-bind="text: fileInfo.match")
+                // /ko 
+
+            
+            .btn-toolbar
+                .btn-group
+                    // ko if: watchSet.isWatching
+                    button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.stop() }") Stop
+                    // /ko 
+                    // ko ifnot: watchSet.isWatching
+                    button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.watch() }") Watch
+                    // /ko 
+                    
+            hr
+
+        a.btn.btn-primary(data-toggle='modal', href='#add_match_set') add matchSet
+
+        #add_match_set.modal.fade
+            .modal-dialog
+                .modal-content
+                    .modal-header
+                        button.close(type='button', data-dismiss='modal', aria-hidden='true') &times;
+                        h4.modal-title add matchSet
+                    .modal-body
+                        .form-horizontal
+                            .form-group
+                                .col-sm-2 root
+                                .col-sm-10
+                                    input.form-control(type='text', data-bind='value:addInfo.root')
+                            .form-group
+                                .col-sm-2 includes
+                                .col-sm-10
+                                    input.form-control(type='text', data-bind='value:addInfo.includes')
+                            .form-group
+                                .col-sm-2 excludes
+                                .col-sm-10
+                                    input.form-control(type='text', data-bind='value:addInfo.excludes')
+
+                    .modal-footer
+                        button.btn.btn-default(type='button', data-dismiss='modal') Close
+                        button.btn.btn-primary(type='button', data-bind='click: addWatchSet') Save changes
+
+        script(src="https://cdn.bootcss.com/jquery/1.10.1/jquery.js")
+
+        script(src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js")
+        script(src="https://cdn.bootcss.com/require.js/2.3.5/require.js")
+        script.
+            requirejs.config({
+                paths: {
+                    ko: 'https://cdn.bootcss.com/knockout/3.4.2/knockout-debug'
+                }
+            })
+            require(['public/app'], function( app ){ });
