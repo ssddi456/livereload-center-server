@@ -16,18 +16,6 @@ html(lang="en")
                 dt watching
                 dd(data-bind="text: watchSet.isWatching")
 
-            dl.dl-horizontal(data-bind="foreach: { data: lastFiveChangeSet, as: 'changeSet'}")
-                // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
-                dt(data-bind="text: fileInfo.fullPath")
-                dd(data-bind="text: fileInfo.match")
-                // /ko 
-
-                // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
-                dt(data-bind="text: fileInfo.fullPath")
-                dd(data-bind="text: fileInfo.match")
-                // /ko 
-
-            
             .btn-toolbar
                 .btn-group
                     // ko if: watchSet.isWatching
@@ -36,7 +24,19 @@ html(lang="en")
                     // ko ifnot: watchSet.isWatching
                     button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.watch() }") Watch
                     // /ko 
-                    
+
+            // ko foreach: { data: lastFiveChangeSet, as: 'changeSet'}
+            h3
+                | changeFrom:   
+                span(data-bind="text:changeSet.timeStamp")
+            ul.list-group
+                // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
+                li.list-group-item.list-group-item-success(data-bind="text: fileInfo.fullPath")
+                // /ko 
+                // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
+                li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
+                // /ko 
+            // /ko 
             hr
 
         a.btn.btn-primary(data-toggle='modal', href='#add_match_set') add matchSet

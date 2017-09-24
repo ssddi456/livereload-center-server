@@ -49,13 +49,11 @@ wSp.process = function (fileInfos) {
 };
 wSp.getJSON = function () {
     var lastFiveChangeSet = this.lastFiveChangeSet;
-    console.log(lastFiveChangeSet.length);
-
     var ret = [];
 
     for (var i = 0; i < lastFiveChangeSet.length; i++) {
         var element = lastFiveChangeSet[i];
-        ret.push(element.toJSON());
+        ret.push(element.getJSON());
     }
 
     return {
@@ -64,24 +62,26 @@ wSp.getJSON = function () {
         isWatching: this.isWatching(),
         includes: this.includesInfo,
         excludes: this.excludesInfo,
-        lastFiveChangeSet: ret.map(function (changeSet) {
-            return changeSet.getJSON();
-        })
+        lastFiveChangeSet: ret
     }
 }
 
 wSp.checkPath = function (filename) {
-    var rPath = path.relative(filename, this.root);
+    var rPath = path.relative(this.root, filename);
+    console.log('rpath', rPath);
+    
     for (var i = 0; i < this.includes.length; i++) {
         var shouldInclude = this.includes[i];
         if (!shouldInclude(rPath)) {
+            console.log('not in whitelist', this.includesInfo[i]);
             return false;
         }
     }
-
+    
     for (var i = 0; i < this.excludes.length; i++) {
         var shouldExclude = this.excludes[i];
         if (shouldExclude(rPath)) {
+            console.log('in blacklist', this.excludesInfo[i]);
             return false;
         }
     }
@@ -93,7 +93,7 @@ wSp.getCurrentChangeSet = function () {
     var now = Date.now();
     if (!this.currentChangeSet || now - this.lastGetTime > this.lastGetInterval) {
         this.currentChangeSet = new ChangeSet(this.process.bind(this));
-        // this.lastFiveChangeSet.unshift(this.currentChangeSet);
+        this.lastFiveChangeSet.unshift(this.currentChangeSet);
         if (this.lastFiveChangeSet.length > 5) {
             this.lastFiveChangeSet.length = 5;
         }
@@ -111,6 +111,7 @@ wSp.watch = function () {
     if (this.stalker) {
         return;
     }
+    var self = this;
     var stalker = this.stalker = watchr.create(this.root);
     stalker.setConfig({
         stat: null,
@@ -124,10 +125,18 @@ wSp.watch = function () {
         ignoreCommonPatterns: true,
         ignoreCustomPatterns: null
     });
-    stalker.watch(this.listen.bind(this));
+    stalker.on('change', this.listen.bind(this));
+    stalker.watch(function ( err ) {
+        if(err){
+            console.log('watch failed');
+            self.stalker = undefined;
+        }
+    });
 };
 
 wSp.listen = function (changeType, fullPath, currentStat, previousStat) {
+    console.log('changeType', changeType, 'fullPath', fullPath);
+
     switch (changeType) {
         case 'update':
         case 'create':
@@ -156,6 +165,7 @@ function ChangeSet(handle) {
     this.timer = undefined;
     this.shouldProcess = [];
     this.shouldNotProcess = [];
+    this.timeStamp = new Date().getTime();
     var self = this;
     this.process = _.debounce(function () {
         handle(self.shouldProcess)
@@ -174,6 +184,7 @@ cSp.getJSON = function () {
     return {
         shouldProcess: this.shouldProcess,
         shouldNotProcess: this.shouldNotProcess,
+        timeStamp: this.timeStamp,
     };
 }
 

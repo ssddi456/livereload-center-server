@@ -20,15 +20,20 @@ router.get('/list', function (req, resp, next) {
 router.get('/:watchset', function (req, resp, next) {
     var param = req.params.watchset;
     var watchSet = watchSets[param];
-    resp.json({ err: 0, watchSet: watchSet });
+
+    if (watchSet) {
+        resp.json({ err: 0, watchSet: watchSet.getJSON() });
+    } else {
+        resp.json({ err: 1, msg: 'watch set not found' });
+    }
 });
 
 router.post('/:watchset/watch', function (req, resp, next) {
-    console.log(req.params);
     var param = req.params.watchset;
-    console.log(param);
     var watchSet = watchSets[param];
+
     watchSet.watch();
+
     resp.json({ err: 0 });
 });
 router.post('/:watchset/stop', function (req, resp, next) {
@@ -50,17 +55,11 @@ router.post('/create', function (req, resp, next) {
     try {
         var myWatchSet = new watchSet.WatchSet(req.body);
     } catch (e) {
-        console.log(e);
-        console.log(e.stack);
-
         return resp.json({ err: 1, msg: e, stack: e.stack });
     }
 
     var watchSetId = 'n' + Date.now();
     watchSets[watchSetId] = myWatchSet;
-
-    console.log(myWatchSet);
-
     resp.json({ err: 0, watchSet: myWatchSet, id: watchSetId });
 });
 

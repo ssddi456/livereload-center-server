@@ -5,6 +5,8 @@ define([
 ) {
         'use strict';
 
+        '123asdasd';
+
         var vm = {
             watchSets: ko.observableArray([]),
 
@@ -74,7 +76,7 @@ define([
                 timer = setTimeout(load, 3000);
             }
 
-            if(data.isWatching()) {
+            if (data.isWatching()) {
                 load();
             }
             return data;
