@@ -9,7 +9,7 @@ define([
 
         var vm = {
             watchSets: ko.observableArray([]),
-
+            watchSet: ko.observable(),
             addInfo: {
                 root: ko.observable(''),
                 includes: ko.observable(''),
@@ -107,5 +107,5 @@ define([
             });
         }
 
-        ko.applyBindings(vm);
+        // ko.applyBindings(vm);
     });

@@ -5,41 +5,100 @@ html(lang="en")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         meta(http-equiv="X-UA-Compatible", content="ie=edge")
         title Document
-        link(rel="stylesheet", href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css")
+        link(rel="stylesheet", href="https://cdn.bootcss.com/bootstrap/3.3.6/css/bootstrap.min.css")
+        link(rel="stylesheet", href="public/css/style.css")
     body
 
-        .container(data-bind="foreach: { data: watchSets, as: 'watchSet'}")
 
-            dl.dl-horizontal
-                dt root
-                dd(data-bind="text: watchSet.root")
-                dt watching
-                dd(data-bind="text: watchSet.isWatching")
+        nav.navbar.navbar-default(role='navigation')
+            // Brand and toggle get grouped for better mobile display
+            .navbar-header
+                button.navbar-toggle(type='button', data-toggle='collapse', data-target='.navbar-ex1-collapse')
+                    span.sr-only Toggle navigation
+                    span.icon-bar
+                    span.icon-bar
+                    span.icon-bar
+                a.navbar-brand(href='#') Title
+            // Collect the nav links, forms, and other content for toggling
+            .collapse.navbar-collapse.navbar-ex1-collapse
+                ul.nav.navbar-nav
+                    li.active
+                        a(href='#') Link
+                    li
+                        a(href='#') Link
+                form.navbar-form.navbar-left(role='search')
+                    .form-group
+                        input.form-control(type='text', placeholder='Search')
+                    button.btn.btn-default(type='submit') Submit
+                ul.nav.navbar-nav.navbar-right
+                    li
+                        a(href='#') Link
+                    li.dropdown
+                        a.dropdown-toggle(href='#', data-toggle='dropdown')
+                            b.caret
+                        ul.dropdown-menu
+                            li
+                                a(href='#') Action
+                            li
+                                a(href='#') Another action
+                            li
+                                a(href='#') Something else here
+                            li
+                                a(href='#') Separated link
 
-            .btn-toolbar
-                .btn-group
-                    // ko if: watchSet.isWatching
-                    button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.stop() }") Stop
+        .container-fluid
+            .row
+                .col-xs-3.col-sm-3.col-md-3.col-lg-3
+                    .row
+                        .col-xs-12.col-sm-12.col-md-12.col-lg-12
+                            a.btn.btn-primary(data-toggle='modal', href='#add_match_set') add matchSet
+                    .row
+                        .col-xs-12.col-sm-12.col-md-12.col-lg-12(data-bind="foreach: { data: watchSets, as: 'watchSet'}")
+                            .bs-callout.bs-callout-info
+                                h4(datq-bind="text:watchSet.root") here will be a root
+
+
+                .col-xs-9.col-sm-9.col-md-9.col-lg-9(data-bind="if: watchSet")
+                    
+                    .row
+                        .col-xs-12.col-sm-12.col-md-12.col-lg-12
+                            h2
+                                | root : 
+                                span(data-bind="text: watchSet.root") here will be a root
+                            i(data-bind="text: watchSet.isWatching() ? 'watching' : 'wait'") wait
+
+                    .bs-callout.bs-callout-warning
+                        h4 includes
+                        span(data-bind="foreach: watchSet.includes")
+                            i(data-bind="text: $data") some/glob/pattern
+                        h4 excludes
+                        span(data-bind="foreach: watchSet.excludes")
+                            i(data-bind="text: $data") some/glob/pattern
+
+                    .btn-toolbar
+                        .btn-group
+                            // ko if: watchSet.isWatching
+                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.stop() }") Stop
+                            // /ko 
+                            // ko ifnot: watchSet.isWatching
+                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.watch() }") Watch
+                            // /ko 
+
+                    br
+
+                    h4
+                        | changes:   
+                    // ko foreach: { data: lastFiveChangeSet, as: 'changeSet'}
+                    p(data-bind="text:changeSet.timeStamp") 123123123123
+                    ul.list-group
+                        // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
+                        li.list-group-item.list-group-item-success(data-bind="text: fileInfo.fullPath")
+                        // /ko 
+                        // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
+                        li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
+                        // /ko 
                     // /ko 
-                    // ko ifnot: watchSet.isWatching
-                    button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.watch() }") Watch
-                    // /ko 
-
-            // ko foreach: { data: lastFiveChangeSet, as: 'changeSet'}
-            h3
-                | changeFrom:   
-                span(data-bind="text:changeSet.timeStamp")
-            ul.list-group
-                // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
-                li.list-group-item.list-group-item-success(data-bind="text: fileInfo.fullPath")
-                // /ko 
-                // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
-                li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
-                // /ko 
-            // /ko 
-            hr
-
-        a.btn.btn-primary(data-toggle='modal', href='#add_match_set') add matchSet
+                    hr
 
         #add_match_set.modal.fade
             .modal-dialog
@@ -68,7 +127,7 @@ html(lang="en")
 
         script(src="https://cdn.bootcss.com/jquery/1.10.1/jquery.js")
 
-        script(src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js")
+        script(src="https://cdn.bootcss.com/bootstrap/3.3.6/js/bootstrap.min.js")
         script(src="https://cdn.bootcss.com/require.js/2.3.5/require.js")
         script.
             requirejs.config({
