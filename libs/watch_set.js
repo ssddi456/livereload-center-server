@@ -118,7 +118,6 @@ wSp.watch = function () {
         interval: 5007,
         persistent: true,
         catchupDelay: 2000,
-        preferredMethods: ['watch', 'watchFile'],
         followLinks: true,
         ignorePaths: false,
         ignoreHiddenFiles: false,
