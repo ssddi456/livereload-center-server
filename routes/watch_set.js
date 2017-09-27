@@ -11,44 +11,9 @@ router.get('/list', function (req, resp, next) {
         err: 0,
         watchSets: Object.keys(watchSets).map(function (key) {
             var data = watchSets[key];
-            data.id = key;
             return data.getJSON();
         })
     });
-});
-
-router.get('/:watchset', function (req, resp, next) {
-    var param = req.params.watchset;
-    var watchSet = watchSets[param];
-
-    if (watchSet) {
-        resp.json({ err: 0, watchSet: watchSet.getJSON() });
-    } else {
-        resp.json({ err: 1, msg: 'watch set not found' });
-    }
-});
-
-router.post('/:watchset/watch', function (req, resp, next) {
-    var param = req.params.watchset;
-    var watchSet = watchSets[param];
-
-    watchSet.watch();
-
-    resp.json({ err: 0 });
-});
-router.post('/:watchset/stop', function (req, resp, next) {
-    var param = req.params.watchset;
-    var watchSet = watchSets[param];
-    watchSet.stop();
-    resp.json({ err: 0 });
-});
-router.post('/:watchset/remove', function (req, resp, next) {
-    var param = req.params.watchset;
-    var watchSet = watchSets[param];
-    watchSet.stop();
-    delete watchSet[param];
-
-    resp.json({ err: 0 });
 });
 
 router.post('/create', function (req, resp, next) {
@@ -60,29 +25,84 @@ router.post('/create', function (req, resp, next) {
 
     var watchSetId = 'n' + Date.now();
     watchSets[watchSetId] = myWatchSet;
-    resp.json({ err: 0, watchSet: myWatchSet, id: watchSetId });
+    myWatchSet.id = watchSetId;
+    resp.json({ err: 0, watchSet: myWatchSet.getJSON(), id: watchSetId });
 });
 
-router.post('edit', function (req, resp, next) {
+router.param('watchset', function (req, resp, next, watchset) {
+    var watchSet = watchSets[watchset];
+    if (!watchSet) {
+        next(new Error('watchset ' + watchset + ' could not be found'));
+    } else {
+        next();
+    }
+})
+router.get('/:watchset', function (req, resp, next) {
     var param = req.params.watchset;
     var watchSet = watchSets[param];
 
+    resp.json({ err: 0, watchSet: watchSet.getJSON() });
+
+});
+
+router.post('/:watchset/watch', function (req, resp, next) {
+    var param = req.params.watchset;
+    var watchSet = watchSets[param];
+
+    watchSet.watch();
+
+    resp.json({ err: 0 });
+});
+
+router.post('/:watchset/stop', function (req, resp, next) {
+    var param = req.params.watchset;
+    var watchSet = watchSets[param];
+    watchSet.stop();
+    resp.json({ err: 0 });
+});
+
+router.post('/:watchset/remove', function (req, resp, next) {
+    var param = req.params.watchset;
+    var watchSet = watchSets[param];
+    watchSet.stop();
+    delete watchSet[param];
+
+    resp.json({ err: 0 });
+});
+
+router.post('/:watchset/edit', function (req, resp, next) {
+    var param = req.params.watchset;
+    var oldwatchSet = watchSets[param];
     try {
+        req.body.root = oldwatchSet.root;
         var newWatchSet = new watchSet.WatchSet(req.body);
     } catch (e) {
-        return resp.json({ err: 1, msg: e, statk: e.statk });
+        return next(e);
     }
 
     watchSets[param] = newWatchSet;
-    newWatchSet.lastFiveChangeSet = watchSet.lastFiveChangeSet;
 
-    if (watchSet.isWatching()) {
-        watchSet.stop();
-    } else {
+    newWatchSet.id = oldwatchSet.id;
+    newWatchSet.lastFiveChangeSet = oldwatchSet.lastFiveChangeSet;
+
+    if (oldwatchSet.isWatching()) {
+        oldwatchSet.stop();
         newWatchSet.watch();
     }
 
     resp.json({ err: 0, watchSet: newWatchSet });
+});
+
+router.post('/:watchset/test_deploy', function (req, resp, next) {
+    var param = req.params.watchset;
+    var watchSet = watchSets[param];
+    watchSet.testDeploy(function (err) {
+        if (err) {
+            next(err);
+        } else {
+            resp.json({ err: 0 });
+        }
+    })
 });
 
 module.exports = router;

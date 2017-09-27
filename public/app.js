@@ -1,12 +1,14 @@
+// @ts-ignore
 define([
     'ko',
+    './utils',
+    './components/index'
 ], function (
-    ko
+    ko,
+    utils,
+    _components
 ) {
         'use strict';
-
-        '123asdasd';
-
         var vm = {
             watchSets: ko.observableArray([]),
             watchSet: ko.observable(),
@@ -19,34 +21,66 @@ define([
             addWatchSet: function () {
                 addWatchSet({
                     root: this.addInfo.root,
-                    includes: processNames(this.addInfo.includes()),
-                    excludes: processNames(this.addInfo.excludes()),
+                    includes: utils.processNames(this.addInfo.includes()),
+                    excludes: utils.processNames(this.addInfo.excludes()),
                 });
             }
         };
 
-        function processNames(names) {
-            return names.split(/,|\s+/).map(function (name) {
-                return name.trim()
-            }).filter(Boolean);
-        }
+
 
         function WatchSet(id, data) {
             data.id = id || data.id;
 
             data.isWatching = ko.observable(data.isWatching);
             data.root = ko.observable(data.root);
-            data.includes = ko.observable(data.includes);
-            data.excludes = ko.observable(data.excludes);
             data.lastFiveChangeSet = ko.observable(data.lastFiveChangeSet);
 
+            data.includes = ko.observable(data.includes.join(', '));
+            data.excludes = ko.observable(data.excludes.join(', '));
+            data.deployApi = ko.observable(data.deployApi);
+            data.deployPath = ko.observable(data.deployPath);
+
+            data.deployTestInfo = ko.observable('');
+            data.deployTestStatus = ko.observable(0);
+
+            var shouldSendUpdate = true;
+            function saveOnChange() {
+                if (!shouldSendUpdate) {
+                    return;
+                }
+
+                $.post('/watch_set/' + data.id + '/edit',
+                    data.getJSON(),
+                    function () {
+                        // so i should add a toast here?
+                    });
+            }
+
+            data.includes.subscribe(saveOnChange);
+            data.excludes.subscribe(saveOnChange);
+            data.deployApi.subscribe(saveOnChange);
+            data.deployPath.subscribe(saveOnChange);
+
             data.update = function (data) {
+                shouldSendUpdate = false;
                 this.isWatching(data.isWatching);
                 this.root(data.root);
-                this.includes(data.includes);
-                this.excludes(data.excludes);
+                this.includes(data.includes.join(', '));
+                this.excludes(data.excludes.join(', '));
                 this.lastFiveChangeSet(data.lastFiveChangeSet);
+                this.deployApi(data.deployApi);
+                this.deployPath(data.deployPath);
+                shouldSendUpdate = true;
             };
+            data.getJSON = function () {
+                return {
+                    includes: utils.processNames(this.includes()),
+                    excludes: utils.processNames(this.excludes()),
+                    deployApi: this.deployApi(),
+                    deployPath: this.deployPath(),
+                }
+            }
             var timer;
             data.watch = function () {
                 $.post('/watch_set/' + this.id + '/watch', function () {
@@ -70,6 +104,29 @@ define([
                     data.isWatching(false);
                 });
             };
+            data.testDeploy = function (vm, e) {
+                var btn = $(e.target);
+                var self = this;
+                btn
+                    .removeClass('btn-success')
+                    .removeClass('btn-danger')
+                    .removeClass('btn-default');
+                $.post('/watch_set/' + this.id + '/test_deploy', function (data) {
+                    if (data.err == 0) {
+                        btn.addClass('btn-success');
+                        self.deployTestStatus(1);
+                        self.deployTestInfo('seems ok');
+                    } else {
+                        btn.addClass('btn-danger');
+                        self.deployTestStatus(2);
+                        self.deployTestInfo(data.message);
+                    }
+                }).fail(function (e) {
+                    btn.addClass('btn-danger');
+                    self.deployTestStatus(2);
+                    self.deployTestInfo('[' + e.status + '] ' + e.responseText || e.statusText);
+                });
+            };
 
             function load() {
                 loadWatchSet(data);
@@ -86,15 +143,24 @@ define([
         $.getJSON('/watch_set/list', function (data) {
             var watchSets = data.watchSets;
             console.log(watchSets);
-            watchSets.forEach(function (watchSet) {
-                vm.watchSets.push(WatchSet(null, watchSet));
-            })
+            watchSets = watchSets.map(function (watchSet) {
+                var newWatchSet = WatchSet(null, watchSet);
+                vm.watchSets.push(newWatchSet);
+                return newWatchSet;
+            });
+            if (!vm.watchSet() && watchSets.length) {
+                vm.watchSet(watchSets[0]);
+            }
         });
 
         function addWatchSet(data) {
             $.post('/watch_set/create', data, function (data) {
                 if (!data.err) {
-                    vm.watchSets.unshift(WatchSet(data.id, data.watchSet));
+                    var newWatchSet = WatchSet(data.id, data.watchSet);
+                    vm.watchSets.unshift(newWatchSet);
+                    if (!vm.watchSet()) {
+                        vm.watchSet(newWatchSet);
+                    }
                 }
             }, 'json');
         }
@@ -107,5 +173,5 @@ define([
             });
         }
 
-        // ko.applyBindings(vm);
+        ko.applyBindings(vm);
     });

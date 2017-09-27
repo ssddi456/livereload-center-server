@@ -43,3 +43,25 @@
     color: #1b809e;
   }
   
+  .bs-callout-normal {
+    border-left-color: #30AA5F;
+  }
+  .bs-callout-normal h4 {
+    color: #30AA5F;
+  }
+  
+
+
+
+.input-group .editable-text-span {
+    display: inline-block;
+    width: auto;
+    border-color: transparent;
+    box-shadow: none;
+}
+.input-group .editable-text-btn {
+    display: inline-block;
+    width: auto;
+    border-color: transparent;
+    box-shadow: none;
+}

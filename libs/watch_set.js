@@ -1,8 +1,11 @@
+var fs = require('fs');
 var path = require('path');
 var minimatch = require('minimatch');
 var assert = require('assert');
 var watchr = require('watchr');
 var _ = require('underscore');
+var request = require('request');
+var async = require('async');
 
 function WatchSet(options) {
     options = options || {};
@@ -12,11 +15,15 @@ function WatchSet(options) {
 
     assert.notEqual(options.root, '', 'watch set could not watch on empty path');
 
+    this.id = undefined;
     this.root = options.root;
     this.includes = [];
     this.includesInfo = [];
     this.excludes = [];
     this.excludesInfo = [];
+
+    this.deployApi = options.deployApi;
+    this.deployPath = options.deployPath;
 
     this.stalker = undefined;
 
@@ -44,9 +51,57 @@ function WatchSet(options) {
 }
 
 var wSp = WatchSet.prototype;
-wSp.process = function (fileInfos) {
 
+wSp.process = function (changeSet, done) {
+    if (!this.deployApi || !this.deployPath) {
+        done(new Error('you havent setup deploy'));
+        return;
+    }
+
+    var deployPath = this.deployPath;
+    var root = this.root;
+
+    async.eachLimit(changeSet.shouldProcess, 5, function (fileInfo, done) {
+        request({
+            method: 'POST',
+            url: this.deployApi,
+            form: {
+                to: path.join(deployPath, path.relative(root, fileInfo.fullPath)),
+                file: fs.createReadStream(fileInfo.fullPath)
+            }
+        }, function (err, resp, body) {
+            if (err) {
+                fileInfo.processResult = err + '';
+            } else if (resp.code !== 200) {
+                fileInfo.processResult = body;
+            }
+            done();
+        });
+    }, done);
 };
+wSp.testDeploy = function (done) {
+    if (!this.deployApi || !this.deployPath) {
+        done(new Error('you havent setup deploy'));
+        return;
+    }
+
+    request({
+        method: 'GET',
+        url: this.deployApi
+    }, function (err, resp, body) {
+        if (err) {
+            done(err);
+        } else if (resp.code !== 200) {
+            var error = new Error('api error');
+            error.code = resp.code;
+            error.message = body;
+            done(err);
+        } else {
+            done();
+        }
+    });
+};
+
 wSp.getJSON = function () {
     var lastFiveChangeSet = this.lastFiveChangeSet;
     var ret = [];
@@ -60,16 +115,19 @@ wSp.getJSON = function () {
         root: this.root,
         id: this.id,
         isWatching: this.isWatching(),
+        lastFiveChangeSet: ret,
+
         includes: this.includesInfo,
         excludes: this.excludesInfo,
-        lastFiveChangeSet: ret
-    }
+        deployApi: this.deployApi,
+        deployPath: this.deployPath,
+    };
 }
 
 wSp.checkPath = function (filename) {
     var rPath = path.relative(this.root, filename);
     console.log('rpath', rPath);
-    
+
     for (var i = 0; i < this.includes.length; i++) {
         var shouldInclude = this.includes[i];
         if (!shouldInclude(rPath)) {
@@ -77,7 +135,7 @@ wSp.checkPath = function (filename) {
             return false;
         }
     }
-    
+
     for (var i = 0; i < this.excludes.length; i++) {
         var shouldExclude = this.excludes[i];
         if (shouldExclude(rPath)) {
@@ -125,8 +183,8 @@ wSp.watch = function () {
         ignoreCustomPatterns: null
     });
     stalker.on('change', this.listen.bind(this));
-    stalker.watch(function ( err ) {
-        if(err){
+    stalker.watch(function (err) {
+        if (err) {
             console.log('watch failed');
             self.stalker = undefined;
         }
@@ -183,6 +241,7 @@ cSp.getJSON = function () {
     return {
         shouldProcess: this.shouldProcess,
         shouldNotProcess: this.shouldNotProcess,
+        processResult: this.processResult,
         timeStamp: this.timeStamp,
     };
 }

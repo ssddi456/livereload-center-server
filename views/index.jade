@@ -54,41 +54,64 @@ html(lang="en")
                             a.btn.btn-primary(data-toggle='modal', href='#add_match_set') add matchSet
                     .row
                         .col-xs-12.col-sm-12.col-md-12.col-lg-12(data-bind="foreach: { data: watchSets, as: 'watchSet'}")
-                            .bs-callout.bs-callout-info
-                                h4(datq-bind="text:watchSet.root") here will be a root
+                            .bs-callout(data-bind="click: function(){\
+                                                        if( $data !== $root.watchSet() ){\
+                                                            $root.watchSet($data);\
+                                                        }\
+                                                    },\
+                                                    css: {\
+                                                        'bs-callout-info' : $data === $root.watchSet()\
+                                                    }")
+                                h4(data-bind="text:watchSet.root") here will be a root
 
 
-                .col-xs-9.col-sm-9.col-md-9.col-lg-9(data-bind="if: watchSet")
-                    
-                    .row
-                        .col-xs-12.col-sm-12.col-md-12.col-lg-12
-                            h2
-                                | root : 
-                                span(data-bind="text: watchSet.root") here will be a root
-                            i(data-bind="text: watchSet.isWatching() ? 'watching' : 'wait'") wait
+                .col-xs-9.col-sm-9.col-md-9.col-lg-9
+                    // ko if: watchSet
+                    h2
+                        | root : 
+                        span(data-bind="text: watchSet().root") here will be a root
+                    i(data-bind="text: watchSet().isWatching() ? 'watching' : 'wait'") wait
 
                     .bs-callout.bs-callout-warning
                         h4 includes
-                        span(data-bind="foreach: watchSet.includes")
-                            i(data-bind="text: $data") some/glob/pattern
+                        span
+                            editable-text(params="value: watchSet().includes") some/glob/pattern
                         h4 excludes
-                        span(data-bind="foreach: watchSet.excludes")
-                            i(data-bind="text: $data") some/glob/pattern
+                        span
+                            editable-text(params="value: watchSet().excludes") some/glob/pattern
+
+
+                    .bs-callout.bs-callout-warning
+                        h4 on change process
+                        .form
+                            .form-group
+                                label.control-label push to api
+                                editable-text(params="value: watchSet().deployApi")
+                            .form-group
+                                label.control-label relative to
+                                editable-text(params="value:  watchSet().deployPath")
+                            .form-group(data-bind="if: watchSet().deployTestInfo")
+                                .alert(data-bind="text: watchSet().deployTestInfo,\
+                                                    css: {\
+                                                        'alert-success': watchSet().deployTestStatus() == 1,\
+                                                        'alert-danger': watchSet().deployTestStatus() == 2,\
+                                                    }")
+                            .form-group
+                                .btn.btn-default(data-bind="click: watchSet().testDeploy.bind(watchSet())") 
+                                    | test deploy
+                                
 
                     .btn-toolbar
                         .btn-group
-                            // ko if: watchSet.isWatching
-                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.stop() }") Stop
+                            // ko if: watchSet().isWatching
+                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet().stop() }") Stop
                             // /ko 
-                            // ko ifnot: watchSet.isWatching
-                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet.watch() }") Watch
+                            // ko ifnot: watchSet().isWatching
+                            button.btn.btn-default(type='button' data-bind="click: function(){ watchSet().watch() }") Watch
                             // /ko 
 
-                    br
-
-                    h4
-                        | changes:   
-                    // ko foreach: { data: lastFiveChangeSet, as: 'changeSet'}
+                    h4 changes:   
+                    // ko foreach: { data: watchSet().lastFiveChangeSet, as: 'changeSet'}
                     p(data-bind="text:changeSet.timeStamp") 123123123123
                     ul.list-group
                         // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
@@ -98,7 +121,14 @@ html(lang="en")
                         li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
                         // /ko 
                     // /ko 
-                    hr
+                    // /ko 
+
+                    // ko ifnot: watchSet
+                    h2 
+                        | you dont have any watchSet, 
+                        a(data-toggle='modal', href='#add_match_set') add one
+                        |  first
+                    // /ko 
 
         #add_match_set.modal.fade
             .modal-dialog
@@ -106,6 +136,7 @@ html(lang="en")
                     .modal-header
                         button.close(type='button', data-dismiss='modal', aria-hidden='true') &times;
                         h4.modal-title add matchSet
+
                     .modal-body
                         .form-horizontal
                             .form-group
@@ -123,10 +154,9 @@ html(lang="en")
 
                     .modal-footer
                         button.btn.btn-default(type='button', data-dismiss='modal') Close
-                        button.btn.btn-primary(type='button', data-bind='click: addWatchSet') Save changes
+                        button.btn.btn-primary(type='button', data-dismiss='modal', data-bind='click: addWatchSet') Save changes
 
         script(src="https://cdn.bootcss.com/jquery/1.10.1/jquery.js")
-
         script(src="https://cdn.bootcss.com/bootstrap/3.3.6/js/bootstrap.min.js")
         script(src="https://cdn.bootcss.com/require.js/2.3.5/require.js")
         script.
