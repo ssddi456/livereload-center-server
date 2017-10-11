@@ -45,14 +45,20 @@ function WatchSet(options) {
     });
 
     if (this.includes.length == 0) {
-        this.includes.push(minimatch.filter('*/**', { matchBase: true }));
-        this.includesInfo.push('*/**');
+        this.includes.push(minimatch.filter('**', { matchBase: true }));
+        this.includesInfo.push('**');
     }
 }
 
 var wSp = WatchSet.prototype;
 
-wSp.process = function (changeSet, done) {
+wSp.processAll = function ( done ) {
+    // so here do a walk from the root
+    // then match
+    // then process    
+};
+
+wSp.process = function (shouldProcess, done) {
     if (!this.deployApi || !this.deployPath) {
         done(new Error('you havent setup deploy'));
         return;
@@ -60,19 +66,33 @@ wSp.process = function (changeSet, done) {
 
     var deployPath = this.deployPath;
     var root = this.root;
+    var self = this;
+    console.log('start process', shouldProcess);
 
-    async.eachLimit(changeSet.shouldProcess, 5, function (fileInfo, done) {
+    async.eachLimit(shouldProcess.filter(function (fileInfo) {
+        return !fileInfo.processing && !fileInfo.processed;
+    }), 5, function (fileInfo, done) {
+        console.log('process file', fileInfo, {
+            to: path.join(deployPath, path.relative(root, fileInfo.fullPath)).replace(/\\/g, '/'),
+            file: fileInfo.fullPath,
+        });
+        fileInfo.processing = true;
         request({
             method: 'POST',
-            url: this.deployApi,
-            form: {
-                to: path.join(deployPath, path.relative(root, fileInfo.fullPath)),
+            uri: self.deployApi,
+            formData: {
+                to: path.join(deployPath, path.relative(root, fileInfo.fullPath)).replace(/\\/g, '/'),
                 file: fs.createReadStream(fileInfo.fullPath)
             }
         }, function (err, resp, body) {
+            fileInfo.processing = false;
+            fileInfo.processed = true;
+
+            console.log('process file end', fileInfo, err, resp && resp.statusCode, body);
+
             if (err) {
                 fileInfo.processResult = err + '';
-            } else if (resp.code !== 200) {
+            } else if (resp.statusCode !== 200) {
                 fileInfo.processResult = body;
             }
             done();
@@ -87,13 +107,13 @@ wSp.testDeploy = function (done) {
 
     request({
         method: 'GET',
-        url: this.deployApi
+        uri: this.deployApi
     }, function (err, resp, body) {
         if (err) {
             done(err);
-        } else if (resp.code !== 200) {
+        } else if (resp.statusCode !== 200) {
             var error = new Error('api error');
-            error.code = resp.code;
+            error.code = resp.statusCode;
             error.message = body;
             done(err);
         } else {
@@ -200,7 +220,7 @@ wSp.listen = function (changeType, fullPath, currentStat, previousStat) {
             console.log('the file', fullPath, 'was created or update', currentStat);
             var changeSet = this.getCurrentChangeSet();
             if (this.checkPath(fullPath)) {
-                changeSet.push({ fullPath: fullPath, match: true });
+                changeSet.push({ fullPath: fullPath, match: true, processing: false, processed: false });
             } else {
                 changeSet.push({ fullPath: fullPath, match: false });
             }
@@ -208,7 +228,8 @@ wSp.listen = function (changeType, fullPath, currentStat, previousStat) {
         case 'delete':
             console.log('the file', fullPath, 'was deleted', previousStat)
             break
-    }
+    };
+
 };
 
 wSp.stop = function () {
@@ -225,7 +246,7 @@ function ChangeSet(handle) {
     this.timeStamp = new Date().getTime();
     var self = this;
     this.process = _.debounce(function () {
-        handle(self.shouldProcess)
+        handle(self.shouldProcess);
     }, 100);
 }
 
@@ -236,6 +257,7 @@ cSp.push = function (fileInfo) {
     } else {
         this.shouldNotProcess.push(fileInfo);
     }
+    this.process();
 };
 cSp.getJSON = function () {
     return {
