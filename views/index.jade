@@ -70,36 +70,6 @@ html(lang="en")
                     h2
                         | root : 
                         span(data-bind="text: watchSet().root") here will be a root
-                    i(data-bind="text: watchSet().isWatching() ? 'watching' : 'wait'") wait
-
-                    .bs-callout.bs-callout-warning
-                        h4 includes
-                        span
-                            editable-text(params="value: watchSet().includes") some/glob/pattern
-                        h4 excludes
-                        span
-                            editable-text(params="value: watchSet().excludes") some/glob/pattern
-
-
-                    .bs-callout.bs-callout-warning
-                        h4 on change process
-                        .form
-                            .form-group
-                                label.control-label push to api
-                                editable-text(params="value: watchSet().deployApi")
-                            .form-group
-                                label.control-label relative to
-                                editable-text(params="value:  watchSet().deployPath")
-                            .form-group(data-bind="if: watchSet().deployTestInfo")
-                                .alert(data-bind="text: watchSet().deployTestInfo,\
-                                                    css: {\
-                                                        'alert-success': watchSet().deployTestStatus() == 1,\
-                                                        'alert-danger': watchSet().deployTestStatus() == 2,\
-                                                    }")
-                            .form-group
-                                .btn.btn-default(data-bind="click: watchSet().testDeploy.bind(watchSet())") 
-                                    | test deploy
-                                
 
                     .btn-toolbar
                         .btn-group
@@ -109,20 +79,66 @@ html(lang="en")
                             // ko ifnot: watchSet().isWatching
                             button.btn.btn-default(type='button' data-bind="click: function(){ watchSet().watch() }") Watch
                             // /ko 
+                    hr
+                    .btn-toolbar
+                        .btn-group
+                            label.btn.btn-default(data-bind="css:{active: tab() == 'options'}, ")
+                                input(type='radio', name='', value='options', data-bind="checked: tab") 
+                                | options
+                            label.btn.btn-default(data-bind="css:{active: tab() == 'changes'}, visible: watchSet().isWatching")
+                                input(type='radio', name='', value='changes', data-bind="checked: tab") 
+                                | changes
 
-                    h4 changes:   
-                    // ko foreach: { data: watchSet().lastFiveChangeSet, as: 'changeSet'}
-                    p(data-bind="text:changeSet.timeStamp") 123123123123
-                    ul.list-group
-                        // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
-                        li.list-group-item.list-group-item-success(data-bind="text: fileInfo.fullPath")
-                        // /ko 
-                        // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
-                        li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
-                        // /ko 
-                    // /ko 
-                    // /ko 
 
+                    div(data-bind="visible: tab() == 'options'")
+
+                        .bs-callout.bs-callout-warning
+                            h4 includes
+                            span
+                                editable-text(params="value: watchSet().includes") some/glob/pattern
+                            h4 excludes
+                            span
+                                editable-text(params="value: watchSet().excludes") some/glob/pattern
+
+                        .bs-callout.bs-callout-warning
+                            h4 on change process
+                            .form
+                                .form-group
+                                    label.control-label push to api
+                                    editable-text(params="value: watchSet().deployApi")
+                                .form-group
+                                    label.control-label relative to
+                                    editable-text(params="value:  watchSet().deployPath")
+                                .form-group(data-bind="if: watchSet().deployTestInfo")
+                                    .alert(data-bind="text: watchSet().deployTestInfo,\
+                                                        css: {\
+                                                            'alert-success': watchSet().deployTestStatus() == 1,\
+                                                            'alert-danger': watchSet().deployTestStatus() == 2,\
+                                                        }")
+                                .form-group
+                                    .btn.btn-default(data-bind="click: watchSet().testDeploy.bind(watchSet())") 
+                                        | test deploy
+                            
+
+                    div(role="visible: watchSet().isWatching && tab() == 'changes' ") 
+                        // ko if: watchSet().lastFiveChangeSet.length
+                        // ko foreach: { data: watchSet().lastFiveChangeSet, as: 'changeSet'}
+                        p(data-bind="text: new Date(changeSet.timeStamp).toString()") 123123123123
+                        ul.list-group
+                            // ko foreach: { data: changeSet.shouldProcess, as: 'fileInfo'}
+                            li.list-group-item.list-group-item-success(data-bind="text: fileInfo.fullPath")
+                            // /ko 
+                            // ko foreach: { data: changeSet.shouldNotProcess, as: 'fileInfo'}
+                            li.list-group-item.list-group-item-danger(data-bind="text: fileInfo.fullPath")
+                            // /ko 
+                        // /ko 
+                        // /ko 
+                        // ko ifnot: watchSet().lastFiveChangeSet.length
+                        h2 no changes here
+                        // /ko 
+
+
+                    // /ko 
                     // ko ifnot: watchSet
                     h2 
                         | you dont have any watchSet, 

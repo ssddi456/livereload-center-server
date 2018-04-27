@@ -12,6 +12,7 @@ define([
         var vm = {
             watchSets: ko.observableArray([]),
             watchSet: ko.observable(),
+            tab: ko.observable('options'),
             addInfo: {
                 root: ko.observable(''),
                 includes: ko.observable(''),
@@ -26,8 +27,6 @@ define([
                 });
             }
         };
-
-
 
         function WatchSet(id, data) {
             data.id = id || data.id;
